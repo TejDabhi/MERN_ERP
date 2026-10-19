@@ -1,60 +1,45 @@
-# DocumentVault – System Architecture Options
+# DocumentVault – Project Initialization
 
-## 1. Project Overview
-DocumentVault manages company documents, expiry dates, reminders, and Google Calendar integration.
+## 1. Objective
+Build a system to manage company documents, expiry dates, reminders, and shared Google Calendar synchronization.
 
-## 2. Architecture Options
-
-### Option 1: Simple Monolithic Architecture
+## 2. Technology Stack
 - Frontend: React
 - Backend: Node.js + Express.js
 - Database: MongoDB
-- Calendar: Google Calendar API
-- All backend features are managed in one application.
-- **Best for:** Small projects and quick development.
+- Calendar Integration: Google Calendar API
+- Background Jobs: Node.js Cron
 
-### Option 2: Modular Monolithic Architecture
-- Frontend: React
-- Backend: Node.js + Express.js
-- Database: MongoDB
-- Separate modules for documents, reminders, users, and calendar.
-- Modules share one backend but maintain separate responsibilities.
-- **Best for:** Easy maintenance and future expansion.
+## 3. Initial Project Setup
+- Initialize the React frontend.
+- Initialize the Node.js and Express backend.
+- Configure MongoDB connection.
+- Create environment variables for credentials and configuration.
+- Set up API routes, controllers, models, and services.
 
-### Option 3: Background Job Architecture
-- Frontend: React
-- Backend: Node.js + Express.js
-- Database: MongoDB
-- Background jobs check expiry dates and synchronize calendar events.
-- Failed calendar operations can be retried automatically.
-- **Best for:** Reliable reminders and automatic synchronization.
+## 4. Initial Modules
+- Document Management
+- Expiry Date Management
+- Reminder Management
+- Google Calendar Integration
+- User Authentication and Authorization
 
-### Option 4: Microservices Architecture
-- Frontend: React
-- Separate services for documents, reminders, and calendar integration.
-- Database: MongoDB, potentially separated by service.
-- Services communicate through APIs or messaging.
-- **Best for:** Large systems with independently scalable services.
-- **Limitation:** More complex to develop and maintain.
+## 5. Initial Development Flow
+1. Discuss requirements with the senior developer.
+2. Finalize the system architecture.
+3. Design the MongoDB document schema.
+4. Create backend APIs for document CRUD operations.
+5. Develop the React interface.
+6. Implement expiry reminders and calendar synchronization.
+7. Test APIs, permissions, and calendar events.
 
-## 3. Common Features
-- Add, view, update, and delete document details.
-- Set document issue and expiry dates.
-- Send reminders before expiry.
-- Synchronize expiry events with a shared company Google Calendar.
-- Control access based on user roles.
-- Track calendar synchronization status and errors.
+## 6. Initial Architecture
+Start with a modular monolithic MERN application.
+Add background jobs for expiry checking and calendar synchronization.
 
-## 4. Recommendation for Discussion
-**Suggested starting point: Option 2 + Option 3.**
-
-Use a modular monolithic backend with background jobs for expiry checking and calendar synchronization. This keeps the system manageable while supporting automatic reminders and retries.
-
-## 5. Senior's Decision
-- [ ] Option 1 – Simple Monolithic
-- [ ] Option 2 – Modular Monolithic
-- [ ] Option 3 – Background Job Architecture
-- [ ] Option 2 + Option 3 – Recommended Combination
-- [ ] Option 4 – Microservices
-
-**Final architecture:** To be selected after discussion with the senior developer.
+## 7. Pending Senior Approval
+- Final architecture selection
+- Shared Google Calendar account and permissions
+- Document upload requirements
+- User roles and access permissions
+- Reminder schedule and notification method
