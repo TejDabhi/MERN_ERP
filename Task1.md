@@ -16,9 +16,10 @@ Junior-level MVC project. No OAuth or Google Calendar API.
 
 - Register, login, logout (JWT in HTTP-only cookie)
 - Nested folders and documents (upload, view, download, update, delete)
-- Every document: `fileName`, `file`, `description`, `category`, `issueDate` (defaults to today)
-- Insurance and agreement: expiry date, reminder time, optional repeat every 3 / 6 / 12 hours (reminder date is set automatically to one month before expiry)
-- Income tax and accounts: financial year (`2025-26`)
+- Two-level categories: pick a category (Personal, Company), then a subcategory using radio buttons
+- Every document: `fileName`, `file`, `description`, `category`, `subcategory`, `issueDate` (defaults to today)
+- Expiry subcategories (e.g. insurance, agreements): expiry date, reminder time, optional repeat every 3 / 6 / 12 hours. Reminder date is set automatically to one month before expiry
+- Financial-year subcategories (e.g. income tax, accounts): financial year (`2025-26`)
 - In-app notifications with unread count and mark-as-read
 - `.ics` download for documents with an expiry date
 
@@ -35,16 +36,38 @@ Junior-level MVC project. No OAuth or Google Calendar API.
 
 ---
 
-## 3. Document Fields
+## 3. Categories and Document Fields
 
-| Category | Extra fields |
-|----------|--------------|
-| All categories | `issueDate` (defaults to current date, can be changed) |
-| identity, education, property, other | None |
-| insurance, agreement | `expiryDate`, `reminderTime` (HH:mm), `repeatEveryHours` (3, 6, 12). `reminderDate` is auto-set to one month before expiry |
-| income_tax, accounts | `financialYear` (format `YYYY-YY`) |
+Documents use a two-level tree. The user picks a **category** first, then a **subcategory** from radio buttons, as in the Your e-Locker screen.
 
-If a category needs expiry, the server requires all expiry fields. Otherwise it clears them. `issueDate` is set to the upload date when the user does not enter one.
+```
+Personal
+├── ( ) Passport Size Photos
+├── ( ) PAN Card
+├── ( ) Driving Licence
+├── ( ) Insurance            [expiry fields]
+└── ( ) Education
+Company
+├── ( ) Documents For QR
+├── ( ) GST Registration
+├── ( ) PF Certificate
+├── ( ) DSC
+├── ( ) Agreement            [expiry fields]
+└── ( ) Income Tax Return    [financial year]
+```
+
+Each subcategory defines its extra fields. The server stores this in `config/categories.js`, so adding a subcategory requires no code change elsewhere.
+
+| Field type | Applies to | Fields |
+|------------|------------|--------|
+| Base | All documents | `fileName`, `file`, `description`, `issueDate` (defaults to today) |
+| Expiry | Subcategories marked expiry (e.g. Insurance, Agreement) | `expiryDate`, `reminderTime` (HH:mm), `repeatEveryHours` (3, 6, 12, optional). `reminderDate` is set automatically to one month before expiry |
+| Financial year | Subcategories marked financial year (e.g. Income Tax, Accounts) | `financialYear` (format `YYYY-YY`) |
+
+Server rules:
+- The subcategory must belong to the chosen category.
+- If the subcategory needs expiry, all expiry fields are required. Otherwise they are cleared.
+- If the subcategory needs a financial year, it is required and validated. Otherwise it is cleared.
 
 ---
 
@@ -64,7 +87,7 @@ Request flow: React → Routes → Middleware → Controller → Model → Mongo
 
 - **User:** name, email (unique), password (bcrypt hash), timezone
 - **Folder:** name, owner, parent (null for root)
-- **Document:** owner, folder, fileName, description, category, issueDate (default: now), filePath, financialYear, expiry (expiryDate, reminderDate [auto], reminderTime, repeatEveryHours, nextReminderAt)
+- **Document:** owner, folder, fileName, description, category, subcategory, issueDate (default: now), filePath, financialYear, expiry (expiryDate, reminderDate [auto], reminderTime, repeatEveryHours, nextReminderAt)
 - **Notification:** user, document, title, message, isRead
 
 ---
@@ -85,11 +108,7 @@ Request flow: React → Routes → Middleware → Controller → Model → Mongo
 - **node-cron:** runs the reminder job
 - **jest, supertest:** unit and API tests
 
-**Frontend**
-- **react, react-dom:** builds the UI
-- **react-router-dom:** page navigation
-- **axios:** HTTP calls to the API
-- **vite:** dev server and build
+**Frontend:** react, react-dom (UI), react-router-dom (pages), axios (API calls), vite (dev server and build)
 
 ---
 
@@ -128,7 +147,7 @@ Request flow: React → Routes → Middleware → Controller → Model → Mongo
 
 ## 9. Testing
 
-Key cases: a December expiry gets a November reminder, duplicate email returns 409, insurance without `expiryDate` returns 400, another user's document returns 404, and a reminder processed twice creates one notification. Run with `cd server && npm test`.
+Key cases: a December expiry gets a November reminder, duplicate email returns 409, Insurance subcategory without `expiryDate` returns 400, another user's document returns 404, and a reminder processed twice creates one notification. Run with `cd server && npm test`.
 
 ---
 
@@ -157,9 +176,3 @@ Run with `npm run dev`, then open `http://localhost:5173`.
 - Reminders can be up to one minute late.
 - Files are stored on local disk. Use cloud storage in production.
 - Future: Google Calendar API sync, email reminders, S3 storage, document search.
-
----
-
-## 12. License
-
-For learning purposes.
