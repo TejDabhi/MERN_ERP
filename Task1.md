@@ -1,35 +1,37 @@
 # DocumentVault
 
-A simple digital document locker built with the MERN stack. Users register, organize files into folders, upload documents, and track expiry for insurance and agreements. Expiry events can be exported as `.ics` files and imported into Google Calendar.
+A simple digital document locker built with the MERN stack. Users organize files into folders, upload documents, and track expiry for insurance and agreements. Expiry events can be exported as `.ics` files and imported into Google Calendar.
 
-Junior-level project using an MVC structure. No OAuth, no Google Calendar API, no microservices.
+Junior-level MVC project. No OAuth or Google Calendar API.
+
+| Item | Details |
+|------|---------|
+| Date of issue | 20 October 2026 |
+| Version | 1.0 |
+| Status | Draft for development |
 
 ---
 
 ## 1. Features
 
 - Register, login, logout (JWT in HTTP-only cookie)
-- Nested folders (folder → subfolder)
-- Upload, view, download, update, delete documents
-- Every document: `fileName`, `file`, `description`, `category`
-- Insurance and agreement: expiry date, reminder date, reminder time, optional repeat every 3 / 6 / 12 hours
+- Nested folders and documents (upload, view, download, update, delete)
+- Every document: `fileName`, `file`, `description`, `category`, `issueDate` (defaults to today)
+- Insurance and agreement: expiry date, reminder time, optional repeat every 3 / 6 / 12 hours (reminder date is set automatically to one month before expiry)
 - Income tax and accounts: financial year (`2025-26`)
 - In-app notifications with unread count and mark-as-read
-- Reminder cron job (runs every minute)
-- Download `.ics` for any document with an expiry date
+- `.ics` download for documents with an expiry date
 
 ---
 
 ## 2. SDLC Phases
 
-| Phase | What happens in this project |
-|-------|------------------------------|
-| Requirements | List features and fields (Section 1 and 3) |
-| Design | MVC layout, data models, API routes (Sections 4 and 6) |
-| Implementation | Backend first, then frontend, feature by feature |
-| Testing | Unit tests for utils, API tests with Supertest |
-| Deployment | Frontend build, backend on Node, database on MongoDB Atlas |
-| Maintenance | Fix bugs, update categories, run `npm audit` |
+1. **Requirements:** features and fields (Sections 1 and 3)
+2. **Design:** MVC layout, data models, API (Sections 4 to 6)
+3. **Implementation:** backend first, then frontend, one feature at a time
+4. **Testing:** unit tests for utils, API tests with Supertest
+5. **Deployment:** frontend build, backend on Node, MongoDB Atlas
+6. **Maintenance:** bug fixes, new categories, `npm audit`
 
 ---
 
@@ -37,124 +39,86 @@ Junior-level project using an MVC structure. No OAuth, no Google Calendar API, n
 
 | Category | Extra fields |
 |----------|--------------|
+| All categories | `issueDate` (defaults to current date, can be changed) |
 | identity, education, property, other | None |
-| insurance, agreement | `expiryDate`, `reminderDate`, `reminderTime` (HH:mm), `repeatEveryHours` (optional: 3, 6, 12) |
+| insurance, agreement | `expiryDate`, `reminderTime` (HH:mm), `repeatEveryHours` (3, 6, 12). `reminderDate` is auto-set to one month before expiry |
 | income_tax, accounts | `financialYear` (format `YYYY-YY`) |
 
-Server rule: if a category needs expiry, all expiry fields are required. Otherwise they are cleared before saving.
+If a category needs expiry, the server requires all expiry fields. Otherwise it clears them. `issueDate` is set to the upload date when the user does not enter one.
 
 ---
 
 ## 4. Architecture (MVC)
 
-```
-React (View) → Express Routes → Middleware → Controllers → Models → MongoDB
-                                                  ↓
-                                   Utils (ics, reminder, financial year)
-                                   Cron job → Notification model
-```
-
-- **Model:** Mongoose schemas in `server/src/models/`
+- **Model:** Mongoose schemas in `server/models/`
 - **View:** React components in `client/src/`
-- **Controller:** request logic in `server/src/controllers/`
+- **Controller:** request logic in `server/controllers/`
+- **Utils:** `ics.util.js`, `reminder.util.js`, `financialYear.util.js`
+- **Job:** `reminder.job.js` (node-cron)
+
+Request flow: React → Routes → Middleware → Controller → Model → MongoDB
 
 ---
 
-## 5. Folder Structure
-
-```
-documentvault/
-├── client/
-│   └── src/
-│       ├── api/axiosClient.js
-│       ├── components/   (FolderTree, DocumentList, DocumentForm, NotificationBell)
-│       ├── pages/        (Login, Register, Dashboard, Notifications)
-│       └── App.jsx
-└── server/
-    ├── server.js
-    ├── app.js
-    ├── config/           (db.js, categories.js)
-    ├── models/           (User, Folder, Document, Notification)
-    ├── controllers/      (auth, folder, document, notification, calendar)
-    ├── routes/           (one file per resource)
-    ├── middleware/       (auth, upload, validate, error)
-    ├── utils/            (ics.util.js, reminder.util.js, financialYear.util.js)
-    ├── jobs/             (reminder.job.js)
-    ├── uploads/          (not committed to Git)
-    └── tests/
-```
-
----
-
-## 6. Data Models
+## 5. Data Models
 
 - **User:** name, email (unique), password (bcrypt hash), timezone
 - **Folder:** name, owner, parent (null for root)
-- **Document:** owner, folder, fileName, description, category, filePath, mimeType, size, financialYear, expiry (expiryDate, reminderDate, reminderTime, repeatEveryHours, nextReminderAt)
+- **Document:** owner, folder, fileName, description, category, issueDate (default: now), filePath, financialYear, expiry (expiryDate, reminderDate [auto], reminderTime, repeatEveryHours, nextReminderAt)
 - **Notification:** user, document, title, message, isRead
 
 ---
 
-## 7. Modules Used
+## 6. Modules Used
 
 **Backend**
-
-| Module | Purpose |
-|--------|---------|
-| express | Routing and middleware |
-| mongoose | MongoDB schemas and queries |
-| dotenv | Loads `.env` secrets |
-| bcryptjs | Hashes passwords |
-| jsonwebtoken | Creates and verifies login tokens |
-| cookie-parser | Reads auth cookie |
-| cors | Allows React app to call the API |
-| helmet | Secure HTTP headers |
-| express-rate-limit | Limits login attempts |
-| multer | Handles file uploads |
-| express-validator | Validates request data |
-| node-cron | Runs reminder job on a schedule |
-| jest, supertest | Unit and API tests |
+- **express:** routes and middleware
+- **mongoose:** MongoDB schemas and queries
+- **dotenv:** loads `.env` secrets
+- **bcryptjs:** hashes passwords
+- **jsonwebtoken:** creates and verifies login tokens
+- **cookie-parser:** reads the auth cookie
+- **cors:** lets React call the API
+- **helmet:** secure HTTP headers
+- **express-rate-limit:** limits login attempts
+- **multer:** handles file uploads
+- **node-cron:** runs the reminder job
+- **jest, supertest:** unit and API tests
 
 **Frontend**
-
-| Module | Purpose |
-|--------|---------|
-| react, react-dom | Builds the UI |
-| react-router-dom | Page navigation |
-| axios | HTTP calls to the API |
-| vite | Dev server and build |
+- **react, react-dom:** builds the UI
+- **react-router-dom:** page navigation
+- **axios:** HTTP calls to the API
+- **vite:** dev server and build
 
 ---
 
-## 8. Key Logic
+## 7. Key Logic
 
-**Repeat reminders:** start at `reminderDate` + `reminderTime`. If `repeatEveryHours` is set, add that many hours for each next reminder. Stop when the next time is after `expiryDate`.
+**Reminder date:** calculated as expiry date minus one month. Example: expiry `2026-12-15` gives reminder `2026-11-15`. If the previous month is shorter, use its last day (expiry `2027-03-31` gives `2027-02-28`). If that date is already past when the document is saved, use today.
+
+**Repeat reminders:** start at `reminderDate` + `reminderTime`. Add `repeatEveryHours` for each next reminder. Stop once the next time passes `expiryDate`.
 
 **Reminder job (every minute):**
 1. Find documents where `expiry.nextReminderAt <= now`.
-2. Update `nextReminderAt` only if its value still matches what was read. This prevents duplicate notifications.
-3. Create a notification for the user.
+2. Update `nextReminderAt` only if it still matches the value read. This prevents duplicate notifications.
+3. Create a notification for the owner.
 
-**ICS export:** `GET /api/documents/:id/ics` returns a `text/calendar` file. Use a stable `UID` so re-importing updates the event instead of duplicating it. The user imports it in Google Calendar under Settings → Import & export.
+**ICS export:** `GET /api/documents/:id/ics` returns a `text/calendar` file. Use a stable `UID` so re-importing updates the event instead of duplicating it. Import in Google Calendar under Settings → Import & export.
 
-**Auth:** bcrypt hashes passwords. JWT in an HTTP-only cookie. Every query filters by `req.user.id`, so users only see their own data.
+**Security:** bcrypt for passwords, JWT in an HTTP-only cookie, and every query filters by `req.user.id`.
 
 ---
 
-## 9. API Summary
+## 8. API Summary
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login |
-| GET | `/api/folders` | Folder tree |
-| POST | `/api/folders` | Create folder |
-| GET | `/api/documents` | List (filter by folder, category) |
-| POST | `/api/documents` | Upload (multipart) |
-| GET | `/api/documents/:id` | Details |
+| POST | `/api/auth/register`, `/api/auth/login` | Sign up / log in |
+| GET, POST | `/api/folders` | List tree / create folder |
+| GET, POST | `/api/documents` | List / upload (multipart) |
+| GET, PATCH, DELETE | `/api/documents/:id` | View / update / delete |
 | GET | `/api/documents/:id/download` | Download file |
-| PATCH | `/api/documents/:id` | Update fields |
-| DELETE | `/api/documents/:id` | Delete document and file |
 | GET | `/api/documents/:id/ics` | Download calendar event |
 | GET | `/api/notifications` | List notifications |
 | GET | `/api/notifications/unread-count` | Unread count |
@@ -162,31 +126,15 @@ documentvault/
 
 ---
 
-## 10. Testing
+## 9. Testing
 
-| Test | Expected result |
-|------|-----------------|
-| Register with existing email | 409 |
-| Access document without login | 401 |
-| Insurance upload without expiryDate | 400 |
-| financialYear `2025-27` | 400 |
-| User B opens User A's document | 404 |
-| Repeat 6h from 09:00 | Next reminder 15:00 |
-| Reminder processed twice | One notification only |
-| `.ics` response | Contains `BEGIN:VCALENDAR` |
-
-Run tests with `cd server && npm test`.
+Key cases: a December expiry gets a November reminder, duplicate email returns 409, insurance without `expiryDate` returns 400, another user's document returns 404, and a reminder processed twice creates one notification. Run with `cd server && npm test`.
 
 ---
 
-## 11. Setup
+## 10. Setup
 
-**Backend**
-```bash
-cd server
-npm install
-```
-Create `server/.env`:
+**Backend:** `cd server && npm install`. Create `server/.env`:
 ```
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/documentvault
@@ -195,12 +143,7 @@ CLIENT_URL=http://localhost:5173
 ```
 Run with `npm run dev`.
 
-**Frontend**
-```bash
-cd client
-npm install
-```
-Create `client/.env`:
+**Frontend:** `cd client && npm install`. Create `client/.env`:
 ```
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -208,24 +151,15 @@ Run with `npm run dev`, then open `http://localhost:5173`.
 
 ---
 
-## 12. Limitations
+## 11. Limitations and Future Work
 
 - Calendar export is one-way. Changed dates need a new `.ics` import.
 - Reminders can be up to one minute late.
 - Files are stored on local disk. Use cloud storage in production.
-- Timezone handling is simplified. Use `luxon` for accuracy.
+- Future: Google Calendar API sync, email reminders, S3 storage, document search.
 
 ---
 
-## 13. Future Enhancements
+## 12. License
 
-- Google Calendar API sync
-- Email reminders with nodemailer
-- Cloud storage (S3)
-- Document search
-
----
-
-## 14. License
-
-For learning purposes. Add MIT or another license before sharing publicly.
+For learning purposes.
